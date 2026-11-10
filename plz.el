@@ -838,7 +838,8 @@ argument passed to `plz--sentinel', which see."
            ;; exited successfully.
            (goto-char (point-min))
            (plz--skip-proxy-headers)
-           (while (plz--skip-redirect-headers))
+           (while (or (plz--skip-informational-headers)
+                      (plz--skip-redirect-headers)))
            (pcase (plz--http-status)
              ((and status (guard (<= 200 status 299)))
               ;; Any 2xx response is considered successful.
@@ -922,6 +923,15 @@ Binds `kill-buffer-query-functions' to nil."
         ;; them).
         (unless (re-search-forward "\r\n\r\n" nil t)
           (signal 'plz-http-error '("plz--response: End of proxy headers not found")))))))
+
+(defun plz--skip-informational-headers ()
+  "Skip HTTP informational (1xx) response headers in current buffer."
+  (when (and (looking-at plz-http-response-status-line-regexp)
+             (<= 100 (string-to-number (match-string 2)) 199))
+    ;; Skip informational response headers (curl includes them when
+    ;; dumping headers).
+    (or (re-search-forward "\r\n\r\n" nil t)
+        (signal 'plz-http-error '("plz--response: End of informational headers not found")))))
 
 (defun plz--skip-redirect-headers ()
   "Skip HTTP redirect headers in current buffer."

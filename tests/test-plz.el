@@ -320,6 +320,37 @@ in URL-encoded form)."
                             (plz-response-headers
                              (plz 'post (url "/post") :as 'response))))))
 
+;;;;; Informational responses
+
+(ert-deftest plz-103-early-hints-skipped ()
+  "A 103 Early Hints response should be skipped, not treated as the response."
+  ;; A local server is used because httpbin cannot send an
+  ;; informational response before the final one.  This test is not
+  ;; defined with `plz-deftest', because that would also test HTTP/2,
+  ;; which curl negotiates with a TLS/ALPN server, not this plain one.
+  (let* ((response (concat "HTTP/1.1 103 Early Hints\r\n"
+                           "Link: <https://example.com/>; rel=preconnect\r\n"
+                           "\r\n"
+                           "HTTP/1.1 200 OK\r\n"
+                           "Content-Type: text/plain\r\n"
+                           "Content-Length: 5\r\n"
+                           "\r\n"
+                           "hello"))
+         (server (make-network-process
+                  :name "plz-test-http-server"
+                  :server t :host "127.0.0.1" :service t :family 'ipv4
+                  :noquery t
+                  :filter (lambda (process string)
+                            (unless (string-empty-p string)
+                              (process-send-string process response)
+                              (delete-process process)))))
+         (port (process-contact server :service)))
+    (unwind-protect
+        (should (equal "hello"
+                       (plz 'get (format "http://127.0.0.1:%d/" port)
+                         :as 'string :then 'sync)))
+      (delete-process server))))
+
 ;;;;; Status codes
 
 (plz-deftest plz-201-succeeds ()

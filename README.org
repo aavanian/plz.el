@@ -194,6 +194,10 @@ You may also clear a queue with ~plz-clear~, which cancels any active or queued 
 
 + Support for the HTTP PATCH method.  ([[https://github.com/alphapapa/plz.el/pull/49][#49]].  Thanks to [[https://github.com/fpvmorais][Pedro Morais]].)
 
+*Fixes*
+
++ Skip informational (1xx) response headers, such as "103 Early Hints", before parsing the final response.  ([[https://github.com/alphapapa/plz.el/issues/44][#44]].)
+
 ** 0.9.1
 
 *Fixes*
